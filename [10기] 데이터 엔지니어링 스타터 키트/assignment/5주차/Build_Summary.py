@@ -69,18 +69,14 @@ channel_summary_sql = """SELECT DISTINCT A.userid,
                         FROM raw_data.user_session_channel A
                         LEFT JOIN raw_data.session_timestamp B ON A.sessionid = B.sessionid;"""
 
-nps_summary_sql = f"""select day, round(100.0 * count(score_over_9)/count(score), 2) - round(100.0 * count(score_under_6)/count(score), 2) as nps
-                    from (select to_char(created_at, 'YYYY-MM-DD') as day, 
-                            CASE 
-                            WHEN score >= 9 THEN  score
-                            END as score_over_9,
-                            CASE
-                            WHEN score <= 6 THEN score
-                            END as score_under_6,
-                            score
-                        from {schema}.nps)
-                    group by 1
-                    order by 1;"""
+nps_summary_sql = f"""SELECT LEFT(created_at, 10) as date,
+                        ROUND(SUM(CASE
+                                    WHEN score >= 9 THEN 1
+                                    WHEN score <= 6 THEN -1
+                                    END)::float*100/COUNT(1), 2)
+                        FROM {schema}.nps
+                        GROUP BY 1
+                        ORDER BY 1;"""
 
 sqls = [channel_summary_sql, nps_summary_sql]
 
